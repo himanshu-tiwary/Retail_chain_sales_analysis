@@ -1,0 +1,96 @@
+
+##Introduction
+
+#This project analyzes a retail chain's sales data to uncover patterns and identify reasons behind declining sales. We will perform data visualization, regression analysis, clustering, and a basic predictive model using the Superstore dataset.
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+##Loading Required Libraries
+
+# install.packages("tidyverse")
+# install.packages("ggplot2")
+# install.packages("dplyr")
+# install.packages("readr")
+
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readr)
+
+##Loading the Dataset
+
+# Load dataset
+D1 <- read.csv("D1.csv", stringsAsFactors = FALSE)
+head(D1)
+
+##Data Visualization
+
+#Total Sales by Category
+
+ggplot(D1, aes(x = Category, y = Sales, fill = Category)) +
+  geom_bar(stat = "summary", fun = "sum") +
+  theme_minimal() +
+  labs(title = "Total Sales by Category", y = "Total Sales")
+
+#Sales Trend Over Time
+
+D1$Order.Date <- as.Date(D1$Order.Date, format = "%d-%m-%Y")
+
+sales_trend <- D1 %>%
+  group_by(Order.Date) %>%
+  summarise(DailySales = sum(Sales))
+
+ggplot(sales_trend, aes(x = Order.Date, y = DailySales)) +
+  geom_line(color = "blue") +
+  labs(title = "Sales Trend Over Time", y = "Sales", x = "Date")
+
+##Regression Analysis
+
+#Simple Linear Regression on Sales
+
+model <- lm(Sales ~ Discount + Quantity, data = D1)
+summary(model)
+
+##Clustering Analysis
+
+#Data Preprocessing and Normalization
+
+cluster_data <- D1 %>% select(Sales, Profit)
+cluster_data <- na.omit(cluster_data)
+cluster_data_scaled <- scale(cluster_data)
+
+##Elbow Method to Determine Optimal Clusters
+
+wss <- sapply(1:10, function(k){
+  kmeans(cluster_data_scaled, centers = k, nstart = 20)$tot.withinss
+})
+
+plot(1:10, wss, type = "b", main = "Elbow Method for K", xlab = "Number of Clusters", ylab = "WSS")
+
+#Applying K-means and Visualizing Clusters
+
+set.seed(123)
+km <- kmeans(cluster_data_scaled, centers = 3, nstart = 25)
+cluster_data$Cluster <- as.factor(km$cluster)
+
+ggplot(cluster_data, aes(x = Sales, y = Profit, color = Cluster)) +
+  geom_point() +
+  labs(title = "Customer Segments Based on Sales and Profit")
+
+##Predictive Model (Bonus)
+
+#Predicting Profit
+
+profit_model <- lm(Profit ~ Sales + Discount + Quantity, data = D1)
+summary(profit_model)
+
+#Prediction for a New Entry
+
+new_data <- data.frame(Sales = 500, Discount = 0.1, Quantity = 2)
+predict(profit_model, newdata = new_data)
+
+
+
+---
